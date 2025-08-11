@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,12 @@ import {
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, Image as ImageIcon, RotateCcw, Sparkles } from 'lucide-react-native';
+import {
+  Camera,
+  Image as ImageIcon,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,10 +25,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import { DetectionService } from '@/services/DetectionService';
 import { DetectionResult } from '@/components/DetectionResult';
+import { useAuth } from '@/providers/AuthProvider';
+import { router } from 'expo-router';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function DetectScreen() {
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!user) {
+      router.replace('/(auth)/login');
+    }
+  }, [user]);
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [detectionResult, setDetectionResult] = useState<any>(null);
@@ -55,7 +68,10 @@ export default function DetectScreen() {
         <Text style={styles.permissionText}>
           We need camera access to detect cauliflower in your photos
         </Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={requestPermission}
+        >
           <Text style={styles.permissionButtonText}>Grant Permission</Text>
         </TouchableOpacity>
       </View>
@@ -104,7 +120,10 @@ export default function DetectScreen() {
       const result = await DetectionService.detectCauliflower(imageUri);
       setDetectionResult(result);
     } catch (error) {
-      Alert.alert('Detection Error', 'Failed to analyze the image. Please try again.');
+      Alert.alert(
+        'Detection Error',
+        'Failed to analyze the image. Please try again.'
+      );
     } finally {
       setIsDetecting(false);
       opacity.value = withTiming(1);
@@ -118,7 +137,7 @@ export default function DetectScreen() {
   };
 
   const toggleCameraFacing = () => {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
   };
 
   if (detectionResult) {
@@ -135,25 +154,21 @@ export default function DetectScreen() {
     <Animated.View style={[styles.container, animatedStyle]}>
       <View style={styles.header}>
         <Text style={styles.title}>Cauliflower Detector</Text>
-        <Text style={styles.subtitle}>Point camera at cauliflower to detect</Text>
+        <Text style={styles.subtitle}>
+          Point camera at cauliflower to detect
+        </Text>
       </View>
 
       <View style={styles.cameraContainer}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={facing}
-        >
+        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
           <View style={styles.overlay}>
             <View style={styles.scanFrame} />
           </View>
         </CameraView>
-        
+
         {isDetecting && (
           <View style={styles.detectingOverlay}>
-            <Animated.View
-              style={[styles.detectingIndicator, rotationStyle]}
-            >
+            <Animated.View style={[styles.detectingIndicator, rotationStyle]}>
               <Sparkles size={32} color="#FFFFFF" />
             </Animated.View>
             <Text style={styles.detectingText}>Analyzing...</Text>
@@ -174,7 +189,10 @@ export default function DetectScreen() {
           <View style={styles.captureButtonInner} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={toggleCameraFacing}
+        >
           <RotateCcw size={24} color="#FFFFFF" strokeWidth={2} />
         </TouchableOpacity>
       </View>

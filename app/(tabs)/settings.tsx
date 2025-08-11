@@ -23,9 +23,13 @@ import {
   Workflow,
 } from 'lucide-react-native';
 import { DetectionService } from '@/services/DetectionService';
+import { useAuth } from '@/providers/AuthProvider';
+import { router } from 'expo-router';
+import { useEffect as useReactEffect } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 export default function SettingsScreen() {
+  const { user, signOut } = useAuth();
   const [stats, setStats] = useState({
     total: 0,
     success: 0,
@@ -56,6 +60,12 @@ export default function SettingsScreen() {
     }, [loadStats])
   );
 
+  useReactEffect(() => {
+    if (!user) {
+      router.replace('/(auth)/login');
+    }
+  }, [user]);
+
   const SettingItem = ({
     icon,
     title,
@@ -84,6 +94,32 @@ export default function SettingsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Settings</Text>
         <Text style={styles.subtitle}>App information and preferences</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        {user ? (
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: '#FEE2E2' }]}
+            onPress={async () => {
+              await signOut();
+              router.replace('/(auth)/login');
+            }}
+          >
+            <Text style={[styles.settingTitle, { color: '#B91C1C' }]}>
+              Sign out
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: '#ECFDF5' }]}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <Text style={[styles.settingTitle, { color: '#065F46' }]}>
+              Sign in
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>

@@ -16,6 +16,8 @@ import {
 } from 'lucide-react-native';
 import { DetectionService } from '@/services/DetectionService';
 import { useFocusEffect } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { router } from 'expo-router';
 
 interface HistoryItem {
   id: string;
@@ -28,8 +30,15 @@ interface HistoryItem {
 }
 
 export default function HistoryScreen() {
+  const { user } = useAuth();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace('/(auth)/login');
+    }
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
