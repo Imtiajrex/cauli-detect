@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,61 @@ import {
   ScrollView,
   Linking,
 } from 'react-native';
-import { Info, CircleHelp as HelpCircle, Star, ExternalLink, Shield, Camera, Smartphone } from 'lucide-react-native';
+import {
+  Info,
+  CircleHelp as HelpCircle,
+  Star,
+  ExternalLink,
+  Shield,
+  Camera,
+  Smartphone,
+  BarChart3,
+  CircleCheck as CheckCircle,
+  Circle as XCircle,
+  Server,
+  Lock,
+  Workflow,
+} from 'lucide-react-native';
+import { DetectionService } from '@/services/DetectionService';
+import { useFocusEffect } from 'expo-router';
 
 export default function SettingsScreen() {
+  const [stats, setStats] = useState({
+    total: 0,
+    success: 0,
+    failed: 0,
+    successRate: 0,
+  });
+
   const openLink = (url: string) => {
     Linking.openURL(url);
   };
 
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    showArrow = true 
+  const loadStats = useCallback(async () => {
+    try {
+      const history = await DetectionService.getHistory();
+      const total = history.length;
+      const success = history.filter((h) => h.result?.isCauliflower).length;
+      const failed = Math.max(total - success, 0);
+      const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+      setStats({ total, success, failed, successRate });
+    } catch (e) {
+      // noop
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats])
+  );
+
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    showArrow = true,
   }: {
     icon: React.ReactNode;
     title: string;
@@ -28,16 +70,12 @@ export default function SettingsScreen() {
     showArrow?: boolean;
   }) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
-      <View style={styles.settingIcon}>
-        {icon}
-      </View>
+      <View style={styles.settingIcon}>{icon}</View>
       <View style={styles.settingContent}>
         <Text style={styles.settingTitle}>{title}</Text>
         {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
       </View>
-      {showArrow && (
-        <ExternalLink size={20} color="#9CA3AF" strokeWidth={2} />
-      )}
+      {showArrow && <ExternalLink size={20} color="#9CA3AF" strokeWidth={2} />}
     </TouchableOpacity>
   );
 
@@ -49,40 +87,56 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
-        
-        <SettingItem
-          icon={<Info size={20} color="#22C55E" strokeWidth={2} />}
-          title="About This App"
-          subtitle="AI-powered cauliflower detection using computer vision"
-          showArrow={false}
-        />
+        <Text style={styles.sectionTitle}>Detection Stats</Text>
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, styles.cardElevated]}>
+            <View style={[styles.statIcon, { backgroundColor: '#ECFDF5' }]}>
+              <BarChart3 size={18} color="#10B981" strokeWidth={2} />
+            </View>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total Scans</Text>
+          </View>
 
-        <SettingItem
-          icon={<Camera size={20} color="#14B8A6" strokeWidth={2} />}
-          title="How It Works"
-          subtitle="Uses advanced image recognition to identify cauliflower"
-          showArrow={false}
-        />
+          <View style={[styles.statCard, styles.cardElevated]}>
+            <View style={[styles.statIcon, { backgroundColor: '#F0FDF4' }]}>
+              <CheckCircle size={18} color="#22C55E" strokeWidth={2} />
+            </View>
+            <Text style={[styles.statValue, { color: '#16A34A' }]}>
+              {stats.success}
+            </Text>
+            <Text style={styles.statLabel}>Successful</Text>
+          </View>
 
-        <SettingItem
-          icon={<Shield size={20} color="#8B5CF6" strokeWidth={2} />}
-          title="Privacy"
-          subtitle="Photos are processed locally and not stored remotely"
-          showArrow={false}
-        />
+          <View style={[styles.statCard, styles.cardElevated]}>
+            <View style={[styles.statIcon, { backgroundColor: '#FEF2F2' }]}>
+              <XCircle size={18} color="#EF4444" strokeWidth={2} />
+            </View>
+            <Text style={[styles.statValue, { color: '#DC2626' }]}>
+              {stats.failed}
+            </Text>
+            <Text style={styles.statLabel}>Failed</Text>
+          </View>
+        </View>
+
+        <View style={styles.successRow}>
+          <View style={styles.successPill}>
+            <Text style={styles.successPillText}>
+              Success rate {stats.successRate}%
+            </Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App Information</Text>
-        
+
         <View style={styles.infoGrid}>
           <View style={styles.infoCard}>
             <Smartphone size={24} color="#22C55E" strokeWidth={2} />
             <Text style={styles.infoLabel}>Version</Text>
             <Text style={styles.infoValue}>1.0.0</Text>
           </View>
-          
+
           <View style={styles.infoCard}>
             <Camera size={24} color="#14B8A6" strokeWidth={2} />
             <Text style={styles.infoLabel}>Detection Engine</Text>
@@ -92,20 +146,57 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Support</Text>
-        
+        <Text style={styles.sectionTitle}>API</Text>
+        <View style={styles.infoGrid}>
+          <View style={styles.infoCard}>
+            <Server size={24} color="#3B82F6" strokeWidth={2} />
+            <Text style={styles.infoLabel}>Provider</Text>
+            <Text style={styles.infoValue}>Google Cloud Vision</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Workflow size={24} color="#8B5CF6" strokeWidth={2} />
+            <Text style={styles.infoLabel}>Features</Text>
+            <Text style={styles.infoValue}>
+              Label Detection + Object Localization
+            </Text>
+          </View>
+        </View>
+
         <SettingItem
-          icon={<HelpCircle size={20} color="#F97316" strokeWidth={2} />}
-          title="Help & FAQ"
-          subtitle="Get answers to common questions"
-          onPress={() => openLink('https://example.com/help')}
+          icon={<Lock size={20} color="#06B6D4" strokeWidth={2} />}
+          title="Security"
+          subtitle="Images are encoded as base64 and sent over HTTPS; only detection results are stored locally"
+          showArrow={false}
         />
 
         <SettingItem
-          icon={<Star size={20} color="#EAB308" strokeWidth={2} />}
-          title="Rate This App"
-          subtitle="Help us improve by leaving a review"
-          onPress={() => openLink('https://example.com/rate')}
+          icon={<ExternalLink size={20} color="#3B82F6" strokeWidth={2} />}
+          title="API Docs"
+          subtitle="Google Vision API: images:annotate endpoint"
+          onPress={() => openLink('https://cloud.google.com/vision/docs')}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Usage</Text>
+
+        <SettingItem
+          icon={<Camera size={20} color="#10B981" strokeWidth={2} />}
+          title="Capture or Pick"
+          subtitle="Take a photo or choose from gallery to start a scan"
+          showArrow={false}
+        />
+        <SettingItem
+          icon={<Server size={20} color="#8B5CF6" strokeWidth={2} />}
+          title="Analyze"
+          subtitle="App converts the image to base64 and calls Vision API"
+          showArrow={false}
+        />
+        <SettingItem
+          icon={<Info size={20} color="#22C55E" strokeWidth={2} />}
+          title="Decide"
+          subtitle="Labels and objects are checked for cauliflower context to determine result and confidence"
+          showArrow={false}
         />
       </View>
 
@@ -113,9 +204,7 @@ export default function SettingsScreen() {
         <Text style={styles.footerText}>
           Made with ❤️ for vegetable enthusiasts
         </Text>
-        <Text style={styles.versionText}>
-          Cauliflower Detector v1.0.0
-        </Text>
+        <Text style={styles.versionText}>Cauliflower Detector v1.0.0</Text>
       </View>
     </ScrollView>
   );
@@ -148,12 +237,69 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 32,
     paddingHorizontal: 24,
+    gap: 10,
   },
   sectionTitle: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 18,
     color: '#374151',
     marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: 'flex-start',
+  },
+  cardElevated: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  statValue: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 22,
+    color: '#111827',
+  },
+  statLabel: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  successRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+  },
+  successPill: {
+    backgroundColor: '#F0FDFA',
+    borderColor: '#99F6E4',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+  },
+  successPillText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 12,
+    color: '#0D9488',
   },
   settingItem: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,14 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
-import { Trash2, CircleCheck as CheckCircle, Circle as XCircle, Clock } from 'lucide-react-native';
+import {
+  Trash2,
+  CircleCheck as CheckCircle,
+  Circle as XCircle,
+  Clock,
+} from 'lucide-react-native';
 import { DetectionService } from '@/services/DetectionService';
+import { useFocusEffect } from 'expo-router';
 
 interface HistoryItem {
   id: string;
@@ -25,9 +31,11 @@ export default function HistoryScreen() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [])
+  );
 
   const loadHistory = async () => {
     try {
@@ -56,7 +64,7 @@ export default function HistoryScreen() {
   const deleteItem = async (id: string) => {
     try {
       await DetectionService.deleteHistoryItem(id);
-      setHistory(prev => prev.filter(item => item.id !== id));
+      setHistory((prev) => prev.filter((item) => item.id !== id));
     } catch (error) {
       console.error('Failed to delete item:', error);
     }
@@ -64,16 +72,20 @@ export default function HistoryScreen() {
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+    return (
+      date.toLocaleDateString() +
+      ' ' +
+      date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    );
   };
 
   const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
     <View style={styles.historyItem}>
       <Image source={{ uri: item.imageUri }} style={styles.historyImage} />
-      
+
       <View style={styles.historyContent}>
         <View style={styles.resultRow}>
           {item.result.isCauliflower ? (
@@ -81,18 +93,22 @@ export default function HistoryScreen() {
           ) : (
             <XCircle size={20} color="#EF4444" strokeWidth={2} />
           )}
-          <Text style={[
-            styles.resultText,
-            { color: item.result.isCauliflower ? '#22C55E' : '#EF4444' }
-          ]}>
-            {item.result.isCauliflower ? 'Cauliflower Detected' : 'Not Cauliflower'}
+          <Text
+            style={[
+              styles.resultText,
+              { color: item.result.isCauliflower ? '#22C55E' : '#EF4444' },
+            ]}
+          >
+            {item.result.isCauliflower
+              ? 'Cauliflower Detected'
+              : 'Not Cauliflower'}
           </Text>
         </View>
-        
+
         <Text style={styles.confidenceText}>
           Confidence: {(item.result.confidence * 100).toFixed(1)}%
         </Text>
-        
+
         <View style={styles.timestampRow}>
           <Clock size={14} color="#9CA3AF" strokeWidth={2} />
           <Text style={styles.timestampText}>
@@ -133,7 +149,7 @@ export default function HistoryScreen() {
         <FlatList
           data={history}
           renderItem={renderHistoryItem}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           refreshControl={
             <RefreshControl

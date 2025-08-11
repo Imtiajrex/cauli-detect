@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 
 export interface DetectionResult {
   isCauliflower: boolean;
@@ -24,7 +25,8 @@ export interface HistoryItem {
 const HISTORY_KEY = 'cauliflower_detection_history';
 
 // Google Vision API configuration
-const GOOGLE_VISION_API_URL = 'https://vision.googleapis.com/v1/images:annotate';
+const GOOGLE_VISION_API_URL =
+  'https://vision.googleapis.com/v1/images:annotate';
 
 // Cauliflower-related keywords for detection
 const CAULIFLOWER_KEYWORDS = [
@@ -35,7 +37,7 @@ const CAULIFLOWER_KEYWORDS = [
   'produce',
   'food',
   'white vegetable',
-  'cruciferous'
+  'cruciferous',
 ];
 
 export class DetectionService {
@@ -43,13 +45,13 @@ export class DetectionService {
     try {
       // Convert image to base64
       const base64Image = await this.convertImageToBase64(imageUri);
-      
+
       // Call Google Vision API
       const visionResponse = await this.callGoogleVisionAPI(base64Image);
-      
+
       // Analyze the response for cauliflower detection
       const analysisResult = this.analyzeLabelAnnotations(visionResponse);
-      
+
       const result: DetectionResult = {
         ...analysisResult,
         timestamp: new Date().toISOString(),
@@ -61,7 +63,7 @@ export class DetectionService {
       return result;
     } catch (error) {
       console.error('Detection error:', error);
-      
+
       // Fallback to mock detection if API fails
       return this.mockDetection(imageUri);
     }
@@ -71,7 +73,7 @@ export class DetectionService {
     try {
       const response = await fetch(imageUri);
       const blob = await response.blob();
-      
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -88,7 +90,7 @@ export class DetectionService {
 
   private static async callGoogleVisionAPI(base64Image: string) {
     const apiKey = process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY;
-    
+
     if (!apiKey || apiKey === 'your_google_vision_api_key_here') {
       throw new Error('Google Vision API key not configured');
     }
@@ -123,13 +125,19 @@ export class DetectionService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Google Vision API error: ${errorData.error?.message || 'Unknown error'}`);
+      throw new Error(
+        `Google Vision API error: ${
+          errorData.error?.message || 'Unknown error'
+        }`
+      );
     }
 
     return response.json();
   }
 
-  private static analyzeLabelAnnotations(visionResponse: any): Omit<DetectionResult, 'timestamp'> {
+  private static analyzeLabelAnnotations(
+    visionResponse: any
+  ): Omit<DetectionResult, 'timestamp'> {
     const annotations = visionResponse.responses?.[0];
     const labelAnnotations = annotations?.labelAnnotations || [];
     const objectAnnotations = annotations?.localizedObjectAnnotations || [];
@@ -145,8 +153,8 @@ export class DetectionService {
     let isCauliflower = false;
 
     // Direct cauliflower detection
-    const cauliflowerLabel = labels.find((label: any) => 
-      label.description === 'cauliflower'
+    const cauliflowerLabel = labels.find(
+      (label: any) => label.description === 'cauliflower'
     );
 
     if (cauliflowerLabel) {
@@ -155,32 +163,36 @@ export class DetectionService {
     } else {
       // Check for related vegetable terms
       const vegetableLabels = labels.filter((label: any) =>
-        CAULIFLOWER_KEYWORDS.some(keyword => 
+        CAULIFLOWER_KEYWORDS.some((keyword) =>
           label.description.includes(keyword.toLowerCase())
         )
       );
 
       if (vegetableLabels.length > 0) {
-        maxCauliflowerScore = Math.max(...vegetableLabels.map((l: any) => l.score));
-        
+        maxCauliflowerScore = Math.max(
+          ...vegetableLabels.map((l: any) => l.score)
+        );
+
         // More conservative detection for related terms
-        const hasVegetableContext = labels.some((label: any) => 
+        const hasVegetableContext = labels.some((label: any) =>
           ['vegetable', 'produce', 'food'].includes(label.description)
         );
-        
+
         isCauliflower = maxCauliflowerScore > 0.7 && hasVegetableContext;
       }
     }
 
     // Check object detection for additional context
     const vegetableObjects = objectAnnotations.filter((obj: any) =>
-      CAULIFLOWER_KEYWORDS.some(keyword =>
+      CAULIFLOWER_KEYWORDS.some((keyword) =>
         obj.name.toLowerCase().includes(keyword.toLowerCase())
       )
     );
 
     if (vegetableObjects.length > 0 && !isCauliflower) {
-      const objectScore = Math.max(...vegetableObjects.map((obj: any) => obj.score));
+      const objectScore = Math.max(
+        ...vegetableObjects.map((obj: any) => obj.score)
+      );
       if (objectScore > maxCauliflowerScore) {
         maxCauliflowerScore = objectScore;
         isCauliflower = objectScore > 0.6;
@@ -188,7 +200,9 @@ export class DetectionService {
     }
 
     // Generate details based on detection
-    const details = isCauliflower ? this.generateDetailsFromLabels(labels) : undefined;
+    const details = isCauliflower
+      ? this.generateDetailsFromLabels(labels)
+      : undefined;
 
     return {
       isCauliflower,
@@ -198,30 +212,36 @@ export class DetectionService {
     };
   }
 
-  private static generateDetailsFromLabels(labels: Array<{ description: string; score: number }>) {
+  private static generateDetailsFromLabels(
+    labels: Array<{ description: string; score: number }>
+  ) {
     // Analyze labels to determine size, freshness, and quality
     const sizeKeywords = {
       small: ['small', 'tiny', 'mini'],
       medium: ['medium', 'regular'],
-      large: ['large', 'big', 'huge', 'giant']
+      large: ['large', 'big', 'huge', 'giant'],
     };
 
     const freshnessKeywords = {
       'Peak Freshness': ['fresh', 'crisp', 'bright', 'vibrant'],
       'Very Fresh': ['good', 'healthy', 'clean'],
-      'Fresh': ['vegetable', 'produce']
+      Fresh: ['vegetable', 'produce'],
     };
 
     const qualityKeywords = {
-      'Premium': ['premium', 'perfect', 'excellent', 'pristine'],
-      'Excellent': ['good', 'fresh', 'healthy', 'quality'],
-      'Good': ['vegetable', 'food', 'produce']
+      Premium: ['premium', 'perfect', 'excellent', 'pristine'],
+      Excellent: ['good', 'fresh', 'healthy', 'quality'],
+      Good: ['vegetable', 'food', 'produce'],
     };
 
     // Determine size
     let size = 'Medium';
     for (const [sizeType, keywords] of Object.entries(sizeKeywords)) {
-      if (labels.some(label => keywords.some(keyword => label.description.includes(keyword)))) {
+      if (
+        labels.some((label) =>
+          keywords.some((keyword) => label.description.includes(keyword))
+        )
+      ) {
         size = sizeType.charAt(0).toUpperCase() + sizeType.slice(1);
         break;
       }
@@ -230,7 +250,11 @@ export class DetectionService {
     // Determine freshness
     let freshness = 'Fresh';
     for (const [freshnessType, keywords] of Object.entries(freshnessKeywords)) {
-      if (labels.some(label => keywords.some(keyword => label.description.includes(keyword)))) {
+      if (
+        labels.some((label) =>
+          keywords.some((keyword) => label.description.includes(keyword))
+        )
+      ) {
         freshness = freshnessType;
         break;
       }
@@ -239,7 +263,11 @@ export class DetectionService {
     // Determine quality
     let quality = 'Good';
     for (const [qualityType, keywords] of Object.entries(qualityKeywords)) {
-      if (labels.some(label => keywords.some(keyword => label.description.includes(keyword)))) {
+      if (
+        labels.some((label) =>
+          keywords.some((keyword) => label.description.includes(keyword))
+        )
+      ) {
         quality = qualityType;
         break;
       }
@@ -248,41 +276,64 @@ export class DetectionService {
     return { size, freshness, quality };
   }
 
-  private static async mockDetection(imageUri: string): Promise<DetectionResult> {
+  private static async mockDetection(
+    imageUri: string
+  ): Promise<DetectionResult> {
     // Fallback mock detection when API fails
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const random = Math.random();
     const isCauliflower = random > 0.4;
-    const confidence = isCauliflower 
-      ? 0.75 + (Math.random() * 0.20)
-      : 0.15 + (Math.random() * 0.6);
+    const confidence = isCauliflower
+      ? 0.75 + Math.random() * 0.2
+      : 0.15 + Math.random() * 0.6;
 
     const result: DetectionResult = {
       isCauliflower,
       confidence,
       timestamp: new Date().toISOString(),
-      details: isCauliflower ? {
-        size: ['Small', 'Medium', 'Large'][Math.floor(Math.random() * 3)],
-        freshness: ['Fresh', 'Very Fresh', 'Peak Freshness'][Math.floor(Math.random() * 3)],
-        quality: ['Good', 'Excellent', 'Premium'][Math.floor(Math.random() * 3)],
-      } : undefined,
+      details: isCauliflower
+        ? {
+            size: ['Small', 'Medium', 'Large'][Math.floor(Math.random() * 3)],
+            freshness: ['Fresh', 'Very Fresh', 'Peak Freshness'][
+              Math.floor(Math.random() * 3)
+            ],
+            quality: ['Good', 'Excellent', 'Premium'][
+              Math.floor(Math.random() * 3)
+            ],
+          }
+        : undefined,
     };
 
     await this.saveToHistory(imageUri, result);
     return result;
   }
 
-  static async saveToHistory(imageUri: string, result: DetectionResult): Promise<void> {
+  static async saveToHistory(
+    imageUri: string | null,
+    result: DetectionResult
+  ): Promise<void> {
     try {
+      let storedImageUri = imageUri;
+      if (imageUri && !imageUri.startsWith(FileSystem.documentDirectory!)) {
+        const fileName = `cauli_${Date.now()}.jpg`;
+        const destPath = FileSystem.documentDirectory + fileName;
+        try {
+          await FileSystem.copyAsync({ from: imageUri, to: destPath });
+          storedImageUri = destPath;
+        } catch (copyError) {
+          console.warn('Failed to copy image to file system:', copyError);
+        }
+      }
+
       const existingHistory = await this.getHistory();
       const newItem: HistoryItem = {
         id: Date.now().toString(),
-        imageUri,
+        imageUri: storedImageUri || '',
         result,
       };
 
-      const updatedHistory = [newItem, ...existingHistory].slice(0, 50); // Keep last 50 items
+      const updatedHistory = [newItem, ...existingHistory].slice(0, 20); // Keep last 20 items
       await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
     } catch (error) {
       console.error('Failed to save to history:', error);
@@ -310,7 +361,7 @@ export class DetectionService {
   static async deleteHistoryItem(id: string): Promise<void> {
     try {
       const history = await this.getHistory();
-      const updatedHistory = history.filter(item => item.id !== id);
+      const updatedHistory = history.filter((item) => item.id !== id);
       await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
     } catch (error) {
       console.error('Failed to delete history item:', error);
