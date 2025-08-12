@@ -8,7 +8,15 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-import { CircleCheck as CheckCircle, Circle as XCircle, ArrowLeft, Share, Calendar, Eye, Gauge } from 'lucide-react-native';
+import {
+  CircleCheck as CheckCircle,
+  Circle as XCircle,
+  ArrowLeft,
+  Share,
+  Calendar,
+  Eye,
+  Gauge,
+} from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -42,14 +50,22 @@ export function DetectionResult({ result, imageUri, onReset }: Props) {
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+    return (
+      date.toLocaleDateString() +
+      ' at ' +
+      date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    );
   };
 
-  const confidenceColor = result.confidence > 0.8 ? '#22C55E' : 
-                         result.confidence > 0.6 ? '#F59E0B' : '#EF4444';
+  const confidenceColor =
+    result.confidence > 0.8
+      ? '#22C55E'
+      : result.confidence > 0.6
+      ? '#F59E0B'
+      : '#EF4444';
 
   return (
     <ScrollView style={styles.container}>
@@ -57,9 +73,9 @@ export function DetectionResult({ result, imageUri, onReset }: Props) {
         <TouchableOpacity style={styles.backButton} onPress={onReset}>
           <ArrowLeft size={24} color="#FFFFFF" strokeWidth={2} />
         </TouchableOpacity>
-        
+
         <Text style={styles.title}>Detection Result</Text>
-        
+
         <TouchableOpacity style={styles.shareButton}>
           <Share size={24} color="#FFFFFF" strokeWidth={2} />
         </TouchableOpacity>
@@ -79,19 +95,28 @@ export function DetectionResult({ result, imageUri, onReset }: Props) {
             ) : (
               <XCircle size={32} color="#EF4444" strokeWidth={2} />
             )}
-            
+
             <View style={styles.resultTextContainer}>
-              <Text style={[
-                styles.resultTitle,
-                { color: result.isCauliflower ? '#22C55E' : '#EF4444' }
-              ]}>
-                {result.isCauliflower ? 'Cauliflower Detected!' : 'Not Cauliflower'}
+              <Text
+                style={[
+                  styles.resultTitle,
+                  { color: result.isCauliflower ? '#22C55E' : '#EF4444' },
+                ]}
+              >
+                {result.isCauliflower
+                  ? 'Cauliflower Detected!'
+                  : 'Not Cauliflower'}
               </Text>
               <Text style={styles.resultSubtitle}>
-                {result.isCauliflower 
-                  ? 'Fresh cauliflower identified in the image'
-                  : 'No cauliflower found in this image'
-                }
+                {result.isCauliflower
+                  ? result.details
+                    ? result.details.freshness === 'Spoiled'
+                      ? 'Spoiled cauliflower detected'
+                      : result.details.freshness === 'Not Fresh'
+                      ? 'Cauliflower is not fresh'
+                      : 'Cauliflower identified in the image'
+                    : 'Cauliflower identified in the image'
+                  : 'No cauliflower found in this image'}
               </Text>
             </View>
           </View>
@@ -101,19 +126,19 @@ export function DetectionResult({ result, imageUri, onReset }: Props) {
               <Gauge size={20} color="#374151" strokeWidth={2} />
               <Text style={styles.confidenceLabel}>Confidence Score</Text>
             </View>
-            
+
             <View style={styles.confidenceBar}>
-              <View 
+              <View
                 style={[
                   styles.confidenceFill,
-                  { 
+                  {
                     width: `${result.confidence * 100}%`,
                     backgroundColor: confidenceColor,
-                  }
-                ]} 
+                  },
+                ]}
               />
             </View>
-            
+
             <Text style={[styles.confidenceText, { color: confidenceColor }]}>
               {(result.confidence * 100).toFixed(1)}%
             </Text>
@@ -122,21 +147,25 @@ export function DetectionResult({ result, imageUri, onReset }: Props) {
           {result.details && (
             <View style={styles.detailsContainer}>
               <Text style={styles.detailsTitle}>Analysis Details</Text>
-              
+
               <View style={styles.detailsGrid}>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Size</Text>
                   <Text style={styles.detailValue}>{result.details.size}</Text>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Freshness</Text>
-                  <Text style={styles.detailValue}>{result.details.freshness}</Text>
+                  <Text style={styles.detailValue}>
+                    {result.details.freshness}
+                  </Text>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Quality</Text>
-                  <Text style={styles.detailValue}>{result.details.quality}</Text>
+                  <Text style={styles.detailValue}>
+                    {result.details.quality}
+                  </Text>
                 </View>
               </View>
             </View>

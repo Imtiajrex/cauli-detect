@@ -215,6 +215,11 @@ export class DetectionService {
   private static generateDetailsFromLabels(
     labels: Array<{ description: string; score: number }>
   ) {
+    // Normalize labels array for quick searches
+    const labelTexts = labels.map((l) => l.description);
+    const hasAny = (keywords: readonly string[]) =>
+      labelTexts.some((t) => keywords.some((k) => t.includes(k)));
+
     // Analyze labels to determine size, freshness, and quality
     const sizeKeywords = {
       small: ['small', 'tiny', 'mini'],
@@ -222,54 +227,97 @@ export class DetectionService {
       large: ['large', 'big', 'huge', 'giant'],
     };
 
-    const freshnessKeywords = {
-      'Peak Freshness': ['fresh', 'crisp', 'bright', 'vibrant'],
-      'Very Fresh': ['good', 'healthy', 'clean'],
+    // Positive freshness indicators (ordered strongest to weakest)
+    const positiveFreshness = {
+      'Peak Freshness': ['crisp', 'bright', 'vibrant', 'pristine'],
+      'Very Fresh': ['fresh', 'healthy', 'clean', 'good'],
       Fresh: ['vegetable', 'produce'],
-    };
+    } as const;
 
+    // Quality positive indicators
     const qualityKeywords = {
       Premium: ['premium', 'perfect', 'excellent', 'pristine'],
       Excellent: ['good', 'fresh', 'healthy', 'quality'],
       Good: ['vegetable', 'food', 'produce'],
-    };
+    } as const;
+
+    // Negative indicators for freshness/quality
+    const heavyNegatives = [
+      'mold',
+      'mould',
+      'mildew',
+      'fungus',
+      'fungi',
+      'rotten',
+      'rot',
+      'decay',
+      'decayed',
+      'spoiled',
+      'spoilage',
+      'blight',
+    ];
+    const mildNegatives = [
+      'bruise',
+      'bruised',
+      'blemish',
+      'blemished',
+      'discoloration',
+      'discoloured',
+      'dirty',
+      'soil',
+      'soiled',
+      'stain',
+      'stained',
+      'wilted',
+      'wilt',
+      'soft',
+      'slimy',
+    ];
+    const colorModifiers = ['black', 'dark', 'brown', 'yellow', 'yellowing'];
+    const spotWords = ['spot', 'spots', 'speck'];
+
+    const hasHeavyNeg = hasAny(heavyNegatives);
+    const hasMildNeg = hasAny(mildNegatives);
+    const hasColoredSpots = hasAny(colorModifiers) && hasAny(spotWords);
 
     // Determine size
     let size = 'Medium';
     for (const [sizeType, keywords] of Object.entries(sizeKeywords)) {
-      if (
-        labels.some((label) =>
-          keywords.some((keyword) => label.description.includes(keyword))
-        )
-      ) {
+      if (hasAny(keywords)) {
         size = sizeType.charAt(0).toUpperCase() + sizeType.slice(1);
         break;
       }
     }
 
-    // Determine freshness
-    let freshness = 'Fresh';
-    for (const [freshnessType, keywords] of Object.entries(freshnessKeywords)) {
-      if (
-        labels.some((label) =>
-          keywords.some((keyword) => label.description.includes(keyword))
-        )
-      ) {
-        freshness = freshnessType;
-        break;
+    // Determine freshness with priority to negative indicators
+    let freshness: string = 'Fresh';
+    if (hasHeavyNeg || hasColoredSpots) {
+      freshness = 'Spoiled';
+    } else if (hasMildNeg) {
+      freshness = 'Not Fresh';
+    } else {
+      for (const [freshnessType, keywords] of Object.entries(
+        positiveFreshness
+      )) {
+        if (hasAny(keywords)) {
+          freshness = freshnessType;
+          break;
+        }
       }
     }
 
-    // Determine quality
-    let quality = 'Good';
-    for (const [qualityType, keywords] of Object.entries(qualityKeywords)) {
-      if (
-        labels.some((label) =>
-          keywords.some((keyword) => label.description.includes(keyword))
-        )
-      ) {
-        quality = qualityType;
-        break;
+    // Determine quality, degrade when negatives appear
+    let quality: string = 'Good';
+    if (freshness === 'Spoiled') {
+      quality = 'Poor';
+    } else if (freshness === 'Not Fresh') {
+      quality = 'Fair';
+    } else {
+      for (const [qualityType, keywords] of Object.entries(qualityKeywords)) {
+        if (hasAny(keywords)) {
+          quality = qualityType;
+          break;
+        }
       }
     }
 
