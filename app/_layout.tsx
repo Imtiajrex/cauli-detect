@@ -1,15 +1,14 @@
-import { useEffect } from 'react';
-import { Stack, Slot, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import {
-  useFonts,
   Inter_400Regular,
   Inter_600SemiBold,
   Inter_700Bold,
+  useFonts,
 } from '@expo-google-fonts/inter';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider, useAuth } from '@/providers/AuthProvider';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,8 +30,6 @@ function AppRoutes() {
 }
 
 export default function RootLayout() {
-  useFrameworkReady();
-
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-SemiBold': Inter_600SemiBold,
