@@ -1,0 +1,97 @@
+name: Build App
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        description: Platform to build for
+        options:
+          - android
+          - ios
+      profile:
+        type: choice
+        description: Build profile to use
+        options:
+          - preview
+          - development
+          - production
+      apiKey:
+        type: string
+        description: Link to the app icon
+      versionCode:
+        type: string
+        description: Version code of the app
+jobs:
+  build:
+    runs-on: ${{ github.event.inputs.platform == 'android' && 'ubuntu-latest' || 'macos-latest' }}
+    strategy:
+      matrix:
+        node: [18]
+    steps:
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v2
+      - name: Setup Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: 🏗 Setup Node
+        run: |
+          cd apps/app
+          echo "Setting up Node.js in $(pwd)"
+          echo "Installing Node.js version ${{ matrix.node }}"
+          curl -sL https://deb.nodesource.com/setup_${{ matrix.node }}.x | bash -
+          sudo apt-get install -y nodejs
+          npm install -g yarn
+
+      - name: 🏗 Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: latest
+          eas-version: latest
+
+      - name: 📦 Install dependencies
+        run: cd apps/app && yarn
+
+      - name: 👷 Build app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPO_PUBLIC_GOOGLE_VISION_API_KEY: ${{ github.event.inputs.apiKey }}
+          NODE_ENV: production
+        run: |
+          eas build --local \
+            --non-interactive \
+            --output=./app-build \
+            --platform=${{ github.event.inputs.platform }} \
+            --profile=${{ github.event.inputs.profile }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.versionCode }}
+          release_name: Release - Cauli Detect + ${{ github.event.inputs.versionCode }}
+          draft: false
+          prerelease: false
+
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url:
+            ${{ steps.create_release.outputs.upload_url }}
+            # This is how it will be named on the release page. Put hatever name
+            # you like, remember that they need to be different for each platform.
+            # You can choose any build matrix parameters. For Rust I use the
+            # target triple.
+          asset_name:
+            cauli-detect-${{ github.event.inputs.versionCode }}.apk
+            # The path to the file you want to upload.
+          asset_path:
+            /home/runner/work/cauli-detect/cauli-detect/app-build
+            # probably you will need to change it, but most likely you are
+            # uploading a binary file
+          asset_content_type: application/octet-stream

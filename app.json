@@ -8,6 +8,7 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "owner": "cu-uni",
     "ios": {
       "supportsTablet": true
     },
@@ -26,6 +27,12 @@
     },
     "android": {
       "package": "com.anonymous.caulidetect"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "38f4779c-f789-4442-bce2-248b1cb4a7b9"
+      }
     }
   }
 }
