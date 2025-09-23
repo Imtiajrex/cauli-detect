@@ -17,7 +17,7 @@ on:
           - production
       apiKey:
         type: string
-        description: Link to the app icon
+        description: Api Key for Google Vision
       versionCode:
         type: string
         description: Version code of the app
