@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { BookOpen } from 'lucide-react-native'; // Add this to settings if missing
+
 import {
   View,
   Text,
@@ -95,6 +97,19 @@ export default function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
         <Text style={styles.subtitle}>App information and preferences</Text>
       </View>
+
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>শিক্ষামূলক বিষয়</Text>
+        
+        <SettingItem
+          icon={<BookOpen size={20} color="#22C55E" strokeWidth={2} />}
+          title="ফুলকপি সম্পর্কে জানুন"
+          subtitle="পুষ্টিগুণ, চাষাবাদ, রেসিপি এবং সংরক্ষণ সম্পর্কে বিস্তারিত"
+          onPress={() => router.push('../(education)/')}
+        />
+      </View>
+
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>

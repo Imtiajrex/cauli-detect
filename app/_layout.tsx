@@ -18,7 +18,10 @@ function AppRoutes() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       {user ? (
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <>
+          <Stack.Screen name="(education)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </>
       ) : (
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       )}
