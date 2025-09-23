@@ -37,7 +37,6 @@ jobs:
           java-version: '17'
       - name: 🏗 Setup Node
         run: |
-          cd apps/app
           echo "Setting up Node.js in $(pwd)"
           echo "Installing Node.js version ${{ matrix.node }}"
           curl -sL https://deb.nodesource.com/setup_${{ matrix.node }}.x | bash -
@@ -52,7 +51,7 @@ jobs:
           eas-version: latest
 
       - name: 📦 Install dependencies
-        run: cd apps/app && yarn
+        run: yarn
 
       - name: 👷 Build app
         env:
